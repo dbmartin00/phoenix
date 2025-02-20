@@ -3,6 +3,7 @@ package harness.io.dbm.phoenix;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -30,7 +31,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -106,7 +109,25 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i(TAG, "onCreate");
 
-        String sdkKey = "2d20dfejlhn8ihi1tla2e27bs4ishqa54nt5";
+        String sdkKey = "";
+
+        try {
+            AssetManager assetManager = getAssets();
+            InputStream inputStream = assetManager.open("splitClientApiKey");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            reader.close();
+
+            sdkKey = stringBuilder.toString();
+            Log.d("AuthKey", "Split SDK Key: " + sdkKey);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+
         // Build SDK configuration by default
         SplitClientConfig config = SplitClientConfig.builder()
                 .impressionsMode(ImpressionsMode.DEBUG)
