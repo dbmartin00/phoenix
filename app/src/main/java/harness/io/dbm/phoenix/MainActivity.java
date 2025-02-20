@@ -23,6 +23,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.provider.Settings;
+import android.content.Context;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -67,6 +69,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public String getAndroidID(Context context) {
+        String androidId = Settings.Secure.getString(
+                context.getContentResolver(),
+                Settings.Secure.ANDROID_ID
+        );
+        return androidId;
+    }
+
     public String getAppVersion(Context context) {
         try {
             PackageManager pm = context.getPackageManager();
@@ -76,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 packageInfo = pm.getPackageInfo(context.getPackageName(), 0);
             }
+            Log.i(TAG, "PackageInfo: " + packageInfo);
             return packageInfo.versionName; // Returns version name from build.gradle
         } catch (PackageManager.NameNotFoundException e) {
             Log.e(TAG, e.getMessage());
@@ -87,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final String appVersion = getAppVersion(getApplicationContext());
+        final String androidId = getAndroidID(getApplicationContext());
+        Log.i(TAG, "androidId: " + androidId);
         Log.d(TAG, "Version: " + appVersion);
 
         final SplitTimer timer = new SplitTimer(System.currentTimeMillis());
@@ -102,13 +115,8 @@ public class MainActivity extends AppCompatActivity {
                 .logLevel(SplitLogLevel.DEBUG)
                 .build();
 
-        // Create a new user key to be evaluated
-        // key represents your internal user id, or the account id that
-        // the user belongs to.
-        String matchingKey = "dmartin";
-
         // Create factory
-        Key key = new Key("dmartin");
+        Key key = new Key(androidId);
         SplitFactory splitFactory = null;
         try {
             splitFactory = SplitFactoryBuilder.build(sdkKey, key, config, getApplicationContext());
