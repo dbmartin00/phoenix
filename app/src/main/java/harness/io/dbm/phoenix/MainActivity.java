@@ -1,16 +1,17 @@
 package harness.io.dbm.phoenix;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
@@ -20,12 +21,8 @@ import androidx.core.view.WindowInsetsCompat;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
-import android.provider.Settings;
-import android.content.Context;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,15 +33,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
-import android.widget.ImageView;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -64,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     String TAG = "DBM";
     SplitClient split;
 
-    class SplitTimer {
+    static class SplitTimer {
         public long startInMillis;
 
         public SplitTimer(long start) {
@@ -72,12 +66,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public String getAndroidID(Context context) {
-        String androidId = Settings.Secure.getString(
-                context.getContentResolver(),
-                Settings.Secure.ANDROID_ID
-        );
-        return androidId;
+    public String getDeviceId(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+        String uuid = prefs.getString("device_uuid", null);
+
+        if (uuid == null) {
+            uuid = UUID.randomUUID().toString();
+            prefs.edit().putString("device_uuid", uuid).apply();
+        }
+
+        return uuid;
     }
 
     public String getAppVersion(Context context) {
@@ -92,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "PackageInfo: " + packageInfo);
             return packageInfo.versionName; // Returns version name from build.gradle
         } catch (PackageManager.NameNotFoundException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, Objects.requireNonNull(e.getMessage()));
             return "Unknown";
         }
     }
@@ -101,8 +99,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final String appVersion = getAppVersion(getApplicationContext());
-        final String androidId = getAndroidID(getApplicationContext());
-        Log.i(TAG, "androidId: " + androidId);
+        String deviceId = getDeviceId(getApplicationContext());
+        Log.i(TAG, "DeviceId: " + deviceId);
         Log.d(TAG, "Version: " + appVersion);
 
         final SplitTimer timer = new SplitTimer(System.currentTimeMillis());
@@ -125,20 +123,34 @@ public class MainActivity extends AppCompatActivity {
             sdkKey = stringBuilder.toString();
             Log.d("AuthKey", "Split SDK Key: " + sdkKey);
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, Objects.requireNonNull(e.getMessage()));
         }
 
         // Build SDK configuration by default
         SplitClientConfig config = SplitClientConfig.builder()
                 .impressionsMode(ImpressionsMode.DEBUG)
+                .impressionsRefreshRate(5)
                 .connectionTimeout(5000)
-                .eventFlushInterval(5000)
+                .eventFlushInterval(5)
                 .logLevel(SplitLogLevel.DEBUG)
                 .build();
 
+//        final ServiceEndpoints serviceEndpoints = ServiceEndpoints.builder()
+//                .apiEndpoint("http://ProxyServerName:Port/api")
+//                .eventsEndpoint("http://ProxyServerName:Port/api")
+//                .sseAuthServiceEndpoint("http://ProxyServerName:Port/api")
+//                .streamingServiceEndpoint("http://ProxyServerName:Port/api")
+//                .telemetryServiceEndpoint("http://ProxyServerName:Port/api")
+//                .build();
+//
+//        SplitClientConfig config = SplitClientConfig.builder()
+//                .serviceEndpoints(serviceEndpoints)
+//                .build();
+
         // Create factory
-        Key key = new Key(androidId);
-        SplitFactory splitFactory = null;
+        Key key = new Key(deviceId);
+//        Key key = new Key("PLACEHOLDER");
+        SplitFactory splitFactory;
         try {
             splitFactory = SplitFactoryBuilder.build(sdkKey, key, config, getApplicationContext());
             split = splitFactory.client();
@@ -175,18 +187,15 @@ public class MainActivity extends AppCompatActivity {
 
         Button nextButton = findViewById(R.id.next);
 
-        nextButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getAndDrawUrl();
-                long clickLatency = System.currentTimeMillis() - timer.startInMillis;
-                Map<String, Object> properties = new TreeMap<String, Object>();
-                properties.put("version", appVersion);
-                String randomChoice = new String[]{"iOS", "Android", "Chrome", "Edge", "Firefox"}[new java.util.Random().nextInt(5)];
-                properties.put("platform", randomChoice);
-                split.track( "user", "click.latency.ms", clickLatency, properties );
-                timer.startInMillis = System.currentTimeMillis();
-            }
+        nextButton.setOnClickListener(v -> {
+            getAndDrawUrl();
+            long clickLatency = System.currentTimeMillis() - timer.startInMillis;
+            Map<String, Object> properties = new TreeMap<>();
+            properties.put("version", appVersion);
+            String randomChoice = new String[]{"iOS", "Android", "Chrome", "Edge", "Firefox"}[new java.util.Random().nextInt(5)];
+            properties.put("platform", randomChoice);
+            split.track( "user", "click.latency.ms", clickLatency, properties );
+            timer.startInMillis = System.currentTimeMillis();
         });
 
 
@@ -197,10 +206,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public class UrlTreatment {
+    public static class UrlTreatment {
         String url;
         String treatment;
 
+        @NonNull
         public String
         toString() {
             return "treatment: " + this.treatment + " url: " + this.url;
@@ -213,12 +223,11 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "getAndDrawUrl()");
         UrlTreatment value = new UrlTreatment();
         Log.i(TAG, "getTreatmentWithConfig");
-        SplitResult result = split.getTreatmentWithConfig("murakami", new HashMap<String, Object>());
+        SplitResult result = split.getTreatmentWithConfig("murakami", new HashMap<>());
         value.treatment = result.treatment();
         Log.i(TAG, "treatment: " + value.treatment);
         if(!value.treatment.equalsIgnoreCase("control")) {
             Log.i(TAG, "value.treatment: " + value.treatment);
-            TextView ctaView = (TextView) findViewById(R.id.cta);
             try {
                 JSONObject configs = new JSONObject(result.config());
                 JSONArray urls = configs.getJSONArray("images");
@@ -270,8 +279,6 @@ public class MainActivity extends AppCompatActivity {
                         params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
 
                         imageView.setLayoutParams(params);
-                    } else {
-                        // Handle error case (optional)
                     }
                 });
             });
