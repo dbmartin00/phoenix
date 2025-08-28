@@ -3,17 +3,23 @@
 Sample "on"
 
 ```json
-{
-  "text": "platinum",
-  "image": "https://images.unsplash.com/photo-1550852826-5369a2d5e585?q=80&w=715&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-}
+{ "images" : [ 
+  "https://d1nhio0ox7pgb.cloudfront.net/_img/v_collection_png/512x512/shadow/lightbulb_on.png", 
+  "https://www.lightbulbs.com/catalog/product_line_photos/light_bulbs_beauty.jpg?123456", 
+  "https://cdn.mos.cms.futurecdn.net/HaPnm6P7TZhPQGGUxtDjAg-320-80.jpg",
+  "https://d1nhio0ox7pgb.cloudfront.net/_img/g_collection_png/standard/256x256/lightbulb_on.png"
+] }
+
 ```
 
 Sample "off"
 
 ```json
-{
-  "text": "gold",
-  "image": "https://plus.unsplash.com/premium_photo-1678025061535-91fe679f8105?q=80&w=1081&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-}
+{ "images" : [ 
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Gluehlampe_01_KMJ.jpg/170px-Gluehlampe_01_KMJ.jpg", 
+  "https://www.seekpng.com/png/detail/672-6727141_light-bulb-off.png", 
+  "https://cdn0.iconfinder.com/data/icons/marketing-essential/48/v-29-512.png",
+  "https://www.citypng.com/public/uploads/preview/hd-light-bulb-on-off-png-704081695126274ja4vazruji.png"	
+] }
+
 ```
